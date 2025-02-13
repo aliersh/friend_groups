@@ -27,7 +27,7 @@ contract BadFriendGroups {
     }
 
     //I need to understand clearly why is not possible to initialize the group inside the push. Storage problem with the message struct array
-    function createGroup(string memory name) public {
+    function createGroup(string memory name) public returns(uint) {
         require(bytes(name).length > 0, "Name cannot be empty");
         groups.push();
         Group storage newGroup = groups[groups.length - 1]; //This is the key, a pointer, a reference, right?
@@ -38,6 +38,12 @@ contract BadFriendGroups {
 
         idToIndex[newGroupId] = groups.length - 1;
         groupCounter++;
+        return newGroupId;
+    }
+
+    function getGroupName(uint groupId) public view returns(string memory) {
+        uint index = _retrieveIndex(groupId);
+        return groups[index].name;
     }
 
     function deleteGroup(uint groupId) public {
@@ -49,7 +55,7 @@ contract BadFriendGroups {
     }
 
     function addMember(uint groupId, address member) public {
-        require(isMember(groupId, member), "Member is already in the group");
+        require(!isMember(groupId, member), "Member is already in the group");
         uint index = _retrieveIndex(groupId);
         groups[index].members.push(member);
     }
@@ -86,7 +92,8 @@ contract BadFriendGroups {
         return false;
     }
 
-    function writeMessage(uint groupId, string memory _content) public {
+    function writeMessage(uint groupId, address member, string memory _content) public returns(uint) {
+        require(isMember(groupId, member), "Only members can send messages");
         require(bytes(_content).length > 0, "Message cannot be empty");
         uint index = _retrieveIndex(groupId);
         Group storage group = groups[index];
@@ -99,6 +106,7 @@ contract BadFriendGroups {
         newMessage.content = _content;
 
         messageCounter++;
+        return newMessage.id;
     }
 
     function getMessage(uint groupId, uint messageId) public view returns(string memory) {
